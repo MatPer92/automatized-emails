@@ -1,0 +1,208 @@
+import pandas as pd
+import datetime
+from datetime import date
+import time
+from datetime import timedelta
+import xlsxwriter
+import tkinter as tk
+from tkinter import ttk
+from tkinter import *
+from openpyxl import load_workbook
+from openpyxl import Workbook
+import smtplib, ssl
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.message import EmailMessage
+import socket
+import openpyxl
+
+window = tk.Tk()
+window.title('Posudba')
+container = ttk.Frame(window)
+canvas = tk.Canvas(container, width=900, height=160)
+
+scrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
+scrollable_frame = ttk.Frame(canvas)
+
+scrollable_frame.bind(
+    "<Configure>",
+    lambda e: canvas.configure(
+        scrollregion=canvas.bbox("all")
+    )
+)
+
+canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+
+canvas.configure(yscrollcommand=scrollbar.set)
+
+
+container.pack()
+canvas.pack(side="left", fill="both", expand=True)
+
+label_email = tk.Label(#scrollable_frame,
+    text = "Email")
+label_email.place(x=10, y=10)
+email = tk.Entry(width=25)
+email.place(x=10, y=40)
+
+
+datum_posudbe = date.today()
+datum_vracanja = datum_posudbe+timedelta(days=30)
+
+dan = datum_posudbe.strftime("%A")
+
+
+button_write = tk.Button(#scrollable_frame,
+    text = "Spremi podatke u tablicu")
+button_write.place(x=10, y=80)
+
+
+label_zanr1 = tk.Label(#scrollable_frame,
+    text = 'Žanr 1. knjige')
+label_zanr1.place(x=310, y=25)
+
+menu = StringVar()
+menu.set('Odaberi')
+
+drop = OptionMenu(window, menu, 'Lektira', 'SF', 'Slikovnica', 'Kriminalistički')
+drop.place(x=310, y=50)
+
+
+label_zanr2 = tk.Label(#scrollable_frame,
+    text = 'Žanr 2. knjige')
+label_zanr2.place(x=430, y=25)
+
+menu_2 = StringVar()
+menu_2.set('Odaberi')
+
+drop_2 = OptionMenu(window, menu_2, 'Lektira', 'SF', 'Slikovnica', 'Kriminalistički')
+drop_2.place(x=430, y=50)
+
+
+label_zanr3 = tk.Label(#scrollable_frame,
+    text = 'Žanr 3. knjige')
+label_zanr3.place(x=550, y=25)
+
+menu_3 = StringVar()
+menu_3.set('Odaberi')
+
+drop_3 = OptionMenu(window, menu_3, 'Lektira', 'SF', 'Slikovnica', 'Kriminalistički')
+drop_3.place(x=550, y=50)
+
+
+label_zanr4 = tk.Label(#scrollable_frame,
+    text = 'Žanr 4. knjige')
+label_zanr4.place(x=670, y=25)
+
+menu_4 = StringVar()
+menu_4.set('Odaberi')
+
+drop_4 = OptionMenu(window, menu_4, 'Lektira', 'SF', 'Slikovnica', 'Kriminalistički')
+drop_4.place(x=670, y=50)
+
+
+label_zanr5 = tk.Label(#scrollable_frame,
+    text = 'Žanr 5. knjige')
+label_zanr5.place(x=790, y=25)
+
+menu_5 = StringVar()
+menu_5.set('Odaberi')
+
+drop_5 = OptionMenu(window, menu_5, 'Lektira', 'SF', 'Slikovnica', 'Kriminalistički')
+drop_5.place(x=790, y=50)
+
+
+label_broj_knjiga = tk.Label(#scrollable_frame,
+    text = '''Broj 
+    posuđenih knjiga''')
+label_broj_knjiga.place(x=180, y=10)
+
+menu_6 = IntVar()
+menu_6.set('0')
+
+drop_6 = OptionMenu(window, menu_6, '1', '2', '3', '4', '5')
+drop_6.place(x=190, y=50)
+
+
+filename = "Tablica_posudbe.xlsx"
+
+def save(event):
+    vrijeme_posudbe = time.strftime("%H:%M:%S")
+    email_save = email.get() 
+    zanr_save = menu.get()
+    zanr_save2 = menu_2.get()
+    zanr_save3 = menu_3.get()
+    zanr_save4 = menu_4.get()
+    zanr_save5 = menu_5.get()
+    broj_knjiga_save = menu_6.get()
+    new_row =  [email_save, datum_posudbe, datum_vracanja, vrijeme_posudbe, dan, broj_knjiga_save, zanr_save, zanr_save2, zanr_save3, zanr_save4, zanr_save5]
+    
+    try:
+        wb = load_workbook(filename)
+        ws = wb.worksheets[0]
+    except FileNotFoundError:
+        headers_row = ['Email', 'Datum posudbe', 'Datum vraćanja', 'Vrijeme posudbe','Dan u tjednu' ,'Broj posuđenih knjiga', 'Žanr 1. knjige', 'Žanr 2. knjige', 'Žanr 3. knjige', 'Žanr 4. knjige', 'Žanr 5. knjige']
+        wb = Workbook()
+        ws = wb.active
+        ws.append(headers_row)
+
+    ws.append(new_row)
+    wb.save(filename)
+
+      
+button_write.bind("<Button-1>", save)
+
+
+def send_email(event):
+    df = pd.read_excel("Tablica_posudbe.xlsx", usecols= "A, C")
+    # wrkbk = openpyxl.load_workbook("Tablica_posudbe.xlsx") 
+    # #print(wrkbk)
+    # sh = wrkbk.active
+    # #print(sh)
+    # for row in sh.iter_rows(min_row=1, min_col=4, max_row=4, max_col=4):
+    #     for cell in row: 
+    label_sent = tk.Label(#scrollable_frame,
+        text = 'Današnji podsjetnici su poslani!')
+    for i in range(0, len(df)):
+        read_date = df['Datum vraćanja'][i]
+        #print(read_date)
+        read_date = read_date.to_pydatetime()
+        read_date_format = read_date.date()
+        diff = read_date_format-date.today()
+        diff = diff.days
+        #print(diff)
+        if diff ==30:
+            read_email = df['Email'][i]
+            #print(read_email)
+            port = 465
+            password = "password_xyz"
+            sender_email = "email_xyz@gmail.com"
+            #Broj dana u "mail_content" mora odgovarati "if diff=xy":, promijeniti oba u 3
+            mail_content = """Mail content"""
+            receiver_email = read_email
+            em = EmailMessage()
+            em['From'] = sender_email
+            em['To'] = receiver_email
+            em['Subject'] = "Podsjetnik"   #The subject line
+            em.set_content(mail_content)
+            text = em.as_string()
+        #The body and the attachments for the mail
+        
+        #Create SMTP session for sending the mail
+            context = ssl.create_default_context()
+            with smtplib .SMTP_SSL('smtp.gmail.com', port, context=context) as smtp:
+                smtp.login(sender_email, password) #login with mail_id and password
+                smtp.sendmail(sender_email, receiver_email, text)
+            
+
+            label_sent.place(x=180, y=115)
+            #print('Poslano!')
+    
+button_send = tk.Button(#scrollable_frame,
+    text = "Pošalji današnje podsjetnike!")
+button_send.place(x=10, y=110)
+
+button_send.bind("<Button-1>", send_email)
+
+
+window.mainloop()    
